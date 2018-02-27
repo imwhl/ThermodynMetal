@@ -4,6 +4,10 @@
   '(org.knowm.xchart XYChart)
   '(org.knowm.xchart.style Styler$LegendPosition)
   '(javax.swing JComponent))
+
+(def k 1.38064852e-23) ;;Boltzmann constant
+(def R 8.3144598)  ;;Gas constant
+
 (defrecord atomInfo [name,a,transition,bulkmodulus,shearmodulus,meltingpoint,surfaceenergy,phi,nws,vm,R])
 	(def Ag (->atomInfo "Ag",0.07,true,100.7e9,28.65e9,1234,0.00125,4.35,2.52,10.2,0.15))
 	(def Cu (->atomInfo "Cu",0.07,true,131e9,45.13e9,1357.6,0.001825,4.45,3.18,7.092,0.3))
@@ -107,6 +111,12 @@
                                            (* -1 (:R pqr))
                                          )
                                         )))
+
+(defn GBEnergy
+  "Equation (1) in H.A. Murdoch, C.A. Schuh, Estimation of grain boundary segregation enthalpy and its role in stable nanocrystalline alloy design, Journal of Materials Research. 28 (2013) 2154¨C2163. doi:10.1557/jmr.2013.211."
+  [g0 soluteExcess segregationEnthalpy Temperature soluteContent]
+  (- g0 (* soluteExcess (- segregationEnthalpy (* k temperature (Math/log soluteContent))))))
+
 (defn addLabels [graphics label x y] (.drawString graphics label x y))
 
 (def width 888)
@@ -124,6 +134,7 @@
 (.addSeries mychart "Cu-Al" xdata,ydata1)
 (.addSeries mychart "Cu-Bi" xdata,ydata2)
 (def sw (SwingWrapper. mychart))
+(.displayChart sw)
 (def graph (.getGraphics (.getXChartPanel sw)))
 (addLabels graph
            "Heat of solution(kJ/mol)"
@@ -141,7 +152,7 @@
            (str "Bi in Cu: " (subs (str (heatOfSolution Bi Cu)) 0 6))
            (- (.getWidth (.getXChartPanel sw))  150)
            (- (.getHeight (.getXChartPanel sw))  100))
-(.displayChart sw)
+
 ;(.repaintChart sw)
 
 (println " Zn in Cu:"(heatOfSolution Zn Cu) "\n Cu in Zn:" (heatOfSolution Cu Zn))
