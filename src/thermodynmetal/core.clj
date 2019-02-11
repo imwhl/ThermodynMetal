@@ -29,7 +29,12 @@
 (def solventLabel (label "solvent:"))
 (def soluteText (text "Zn"))
 (def solventText (text "Cu"))
-(def myButton (button :text "OK"))
+(def contentLabel (label "content:"))
+(def contentText (text "0.5"))
+(def enthalpyValue (label ""))
+(def enthalpyUnit (label " kJ/mol"))
+(def myButton (button :text "Formation Enthalpy"))
+(def GBEnergyBtn (button :text "GB Energy plot"))
 (def GBSTableB (button :text  "GB Hseg"))
 (def GBSTable (table :model [:columns [:elements :Ag :Cu :Zn :Fe :C :Al :Mg :Ni :N :H :Y :Cr :Sr :Sc :Ti :V :Mo :Co :Li :Na :Ga :In :Tl :Sn :Pb :Sb :Bi :Pd :Au :Mn :Zr :Nb :Tc :Ta :W :Pt :La :Re :Rh :Ru :Gd :Ca :B :Cd]
                              :rows [{:elements "Ag"} {:elements "Cu"} {:elements "Zn"} {:elements "Fe"} {:elements "C"} {:elements "Al"} {:elements "Mg"} {:elements "Ni"} {:elements "N"} {:elements "H"} {:elements "Y"} {:elements "Cr"} {:elements "Sr"} {:elements "Sc"} {:elements "Ti"} {:elements "V"} {:elements "Mo"} {:elements "Co"} {:elements "Li"} {:elements "Na"} {:elements "Ga"} {:elements "In"} {:elements "Tl"} {:elements "Sn"} {:elements "Pb"} {:elements "Sb"} {:elements "Bi"} {:elements "Pd"} {:elements "Au"} {:elements "Mn"} {:elements "Zr"} {:elements "Nb"} {:elements "Tc"} {:elements "Ta"} {:elements "W"} {:elements "Pt"} {:elements "La"} {:elements "Re"} {:elements "Rh"} {:elements "Ru"} {:elements "Gd"} {:elements "Ca"} {:elements "B"} {:elements "Cd"}]]))
@@ -40,7 +45,12 @@
                        [soluteText]
                        [solventLabel]
                        [solventText]
-                       [myButton "wrap"]
+                       [contentLabel]
+                       [contentText]                       
+                       [enthalpyValue]
+                       [enthalpyUnit "wrap"]
+                       [myButton]
+                       [GBEnergyBtn]
                        [GBSTableB]
                        [(scrollable logs) "cell 1 2 4 30"]]))
 (display myPanel)
@@ -56,6 +66,10 @@
                                               (str (:name solute) "in" (:name solvent) (format ": %.2f" (GBEnthalpy solute solvent)))))                             ;;(config! f :visible? false)
                              ;;(config! f :visible? true)
                              (config! myframe :visible? true))))
+
+(listen GBEnergyBtn :action (fn [e] (do 
+                                      (println "Grain boundary energy: "))))
+
 (listen GBSTableB :action (fn [e]
                             (do
                               (doseq [rowid (range 44)]
