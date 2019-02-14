@@ -13,8 +13,8 @@
 (def myicon (icon (File. "ico.ico")))
 (def f (frame :title "Miedema for binary"
               :icon myicon
-              :width 456
-              :height 456))
+              :width 888
+              :height 666))
 ;;(-> f pack! show!)
 ;;(-> f show!)
 (defn display [content]
@@ -35,6 +35,7 @@
 (def enthalpyUnit (label " kJ/mol"))
 (def myButton (button :text "Formation Enthalpy"))
 (def GBEnergyBtn (button :text "GB Energy plot"))
+(def GBEvsSizeBtn (button :text "GB Energy vs grain size"))
 (def GBSTableB (button :text  "GB Hseg"))
 (def GBSTable (table :model [:columns [:elements :Ag :Cu :Zn :Fe :C :Al :Mg :Ni :N :H :Y :Cr :Sr :Sc :Ti :V :Mo :Co :Li :Na :Ga :In :Tl :Sn :Pb :Sb :Bi :Pd :Au :Mn :Zr :Nb :Tc :Ta :W :Pt :La :Re :Rh :Ru :Gd :Ca :B :Cd]
                              :rows [{:elements "Ag"} {:elements "Cu"} {:elements "Zn"} {:elements "Fe"} {:elements "C"} {:elements "Al"} {:elements "Mg"} {:elements "Ni"} {:elements "N"} {:elements "H"} {:elements "Y"} {:elements "Cr"} {:elements "Sr"} {:elements "Sc"} {:elements "Ti"} {:elements "V"} {:elements "Mo"} {:elements "Co"} {:elements "Li"} {:elements "Na"} {:elements "Ga"} {:elements "In"} {:elements "Tl"} {:elements "Sn"} {:elements "Pb"} {:elements "Sb"} {:elements "Bi"} {:elements "Pd"} {:elements "Au"} {:elements "Mn"} {:elements "Zr"} {:elements "Nb"} {:elements "Tc"} {:elements "Ta"} {:elements "W"} {:elements "Pt"} {:elements "La"} {:elements "Re"} {:elements "Rh"} {:elements "Ru"} {:elements "Gd"} {:elements "Ca"} {:elements "B"} {:elements "Cd"}]]))
@@ -51,8 +52,9 @@
                        [enthalpyUnit "wrap"]
                        [myButton]
                        [GBEnergyBtn]
+                       [GBEvsSizeBtn]
                        [GBSTableB]
-                       [(scrollable logs) "cell 1 2 4 30"]]))
+                       [(scrollable logs) "cell 1 2 7 30"]]))
 (display myPanel)
 ;;(config! myframe :content (XChartPanel. (getChart Zn Cu)))
 (listen myButton :action (fn [e]
@@ -63,12 +65,17 @@
                                               (str (:name solute) " in " (:name solvent) ":" (format "%.2f" (heatOfSolution solute solvent)) "\n")
                                               (str (:name solvent) " in " (:name solute) ":" (format "%.2f" (heatOfSolution solvent solute)) "\n")
                                               "Grain boundary segregation enthalpy(kJ/mol):\n"
-                                              (str (:name solute) "in" (:name solvent) (format ": %.2f" (GBEnthalpy solute solvent)))))                             ;;(config! f :visible? false)
-                             ;;(config! f :visible? true)
+                                              (str (:name solute) " in " (:name solvent) (format ": %.2f" (GBEnthalpy solute solvent)))))                             ;;(config! f :visible? false)
+                             (config! enthalpyValue :text (format "%.2f" (formationEnthalpy (read-string (second (re-matches (re-pattern "(\\d+\\.{0,1}\\d+).*") (text contentText)))) solute solvent)))
+                           ;;(config! f :visible? true)
                              (config! myframe :visible? true))))
 
-(listen GBEnergyBtn :action (fn [e] (do 
-                                      (println "Grain boundary energy: "))))
+(listen GBEnergyBtn :action (fn [e]
+                              (let [solute (atoms (text soluteText)) solvent (atoms (text solventText))]
+                                (config! myframe :content (XChartPanel. (getGBEChart solute solvent)))
+                                (config! myframe :visible? true))))
+
+(listen GBEvsSizeBtn :action(fn [e] (text! logs (str (text logs) "\nto do"))))
 
 (listen GBSTableB :action (fn [e]
                             (do

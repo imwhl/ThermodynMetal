@@ -145,32 +145,46 @@
  
  ;;Mclean Segregation law
  (defn McLean 
-    "Mclean Segregation law, which determines the concentration of solute in the grain boundary. Return the concentration of solute in the grain boundary. Note that the segregation enthalpy should use positive values here." 
-    [temperature, Hseg, Xbulk] (->> (-> Xbulk (/ (- 1 Xbulk)) (* (Math/exp  (/ Hseg k temperature)))) (/ 1.0) (+ 1.0) (/ 1.0)))
+   "Mclean Segregation law, which determines the concentration of solute in the grain boundary. Return the concentration of solute in the grain boundary. Note that the segregation enthalpy should use positive values here." 
+   [temperature, Hseg, Xbulk] 
+   {:pre [(>= Xbulk 0) (<= Xbulk 1) (>= temperature 0) (>= Hseg 0)]}
+   (->> (-> Xbulk (/ (- 1 Xbulk)) (* (Math/exp  (/ Hseg k temperature)))) (/ 1.0) (+ 1.0) (/ 1.0)))
  
  ;;Solve compositions in the grain interial and boundary
  (defn
     McLeanComp 
     "Solve compositions in the grain interial and boundary. By the forumlae of (1) Mclean segregation law:Xig/(1-Xig)=Xb/(1-Xb)*exp(Hseg/kT) and (2) X=(1-fig)*Xb+fig*Xig. Where X is the global composition, Xb is the composition in the grain interial, Xig is the composition in the boundary, fig is the volume fraction of the boundary layer, which could be expressed as: fig=1-((d-t)/d)^D, where D is the dimensionality parameter. D=3 should be used for a general threedimensional polycrystal, while D=2 is useful for columnar or highly elongated grain structures and D=1 applies to lamellar or platelike grains."
-    [globalComposition, grainSize, boundaryThickness, Dimensionality, temperature, Hseg] (let [X globalComposition,
+    [globalComposition, grainSize, boundaryThickness, Dimensionality, temperature, Hseg] 
+{:pre [(>= globalComposition 0) (<= globalComposition 1) (< boundaryThickness grainSize) (>= boundaryThickness 0)
+           (>= Dimensionality 0) (<= Dimensionality 3) (>= temperature 0) (>= Hseg 0)]}
+(let [X globalComposition,
     d grainSize,
     t boundaryThickness,
     D Dimensionality,
     T temperature,
-    H Hseg
+    H (* Hseg 1000.0) ;;since the unit of Hseg is kJ/mol, here we need J/mol
     fig (- 1 (Math/pow (-> d (- t) (/ d)) D))
     ex (Math/exp (-> -1 (* Hseg) (/ R T)))
-    a (* fig (- ex 1)
+    a (* fig (- ex 1))
     b (-> 1 (- ex) (* fig) (+ (-> 1 (- X) (* ex))) (+ X))
     c (* -1.0 X)
     Xig (-> -1 (* b) (+ (Math/sqrt (-> b (* b) (- (* 4.0 a c))))) (/ 2.0 a))
-    Xb (-> X (- (* fig Xig)) (/ (- 1 fig)))] (list X Xig Xb fig)))
+    Xb (-> X (- (* fig Xig)) (/ (- 1 fig)))] {:X X :Xig Xig :Xb Xb :fig fig}))
  
  (def temperature 273)
- 
+
+;;unit:J/m^2
  (defn GBEnergy "Grain boundary segregation and thermodynamically stable binary nanocrystalline alloys, Jason R. Trelewicz and Christopher A. Schuh. PHYSICAL REVIEW B 79, 094112 (2009), http://dx.doi.org/10.1103/PhysRevB.79.094112  Eq. 25(b), note that the atomic volume is of the solvent"
     [gA, boundaryThickness, Xig, atomicVolume, Hseg, temperature, Xb]
-    (-> gA (- (-> boundaryThickness (* Xig) (/ atomicVolume) (* (+ Hseg (* R T (Math/log Xb))))))))
+   (-> gA (- (-> boundaryThickness (* Xig) (/ atomicVolume) (* (+ (/ (* Hseg 1000) Nav) (* k temperature (Math/log Xb))))))))
+
+;;test GBEnergy
+(comment 
+(GBEnergy 0,0.5e-9,0.0100398,(-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius Cu) 3.0))),10,300,0.0099999)
+(-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius Cu) 3.0)))
+(McLeanComp 0.01 100.0e-6,0.5e-9,3.0,300,10)
+(map #(McLeanComp % 100.0e-6,0.5e-9,3.0,298,10) [0.01 0.02 0.03]))
+
  (defn GBEnergy1
    "Equation (1) in H.A. Murdoch, C.A. Schuh, Estimation of grain boundary segregation enthalpy and its role in stable nanocrystalline alloy design, Journal of Materials Research. 28 (2013) 2154–2163. doi:10.1557/jmr.2013.211."
    [g0 soluteExcess segregationEnthalpy Temperature soluteContent]
@@ -182,7 +196,7 @@
  (defn getChart [solute solvent]
    (let [mychart (XYChart. cwidth cheight)
          ;;sw (SwingWrapper. mychart)
-         xdata (take 201 (iterate #(+ % (/ 1.0 200.0)) 0))
+         xdata (take 201 (iterate #(+ % (/ 1.0 200.0)) 0))         
          ydata (map #(formationEnthalpy % solute solvent) xdata)]
      (.setTitle mychart (str "Miedema Formation Enthalpy " (:name solvent) "-" (:name solute)))
      (.setXAxisTitle mychart (str (:name solute) "(at.%)"))
@@ -198,7 +212,59 @@
      (println (GBEnthalpy solute solvent))
      mychart
      ))
- 
+
+
+;; (GBEnergy gA, boundaryThickness, Xig, atomicVolume, Hseg, temperature, Xb)
+;; (McLeanComp globalComposition, grainSize, boundaryThickness, Dimensionality, temperature, Hseg)
+ (defn getGBEChart [solute solvent]
+   (let [mychart (XYChart. cwidth cheight)
+         ;;sw (SwingWrapper. mychart)
+         xdata (take 201 (iterate #(+ % (/ 0.01 200.0)) 0))
+         hseg (GBEnthalpy solute solvent)
+         mcleancomp (map #(McLeanComp % 100.0e-6,0.5e-9,3.0,298,hseg) xdata)
+         xig (map #(:Xig %) mcleancomp)
+         xb  (map #(:Xb %) mcleancomp)
+         ydata (map #(GBEnergy 0 0.5e-9 %1 (-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius solvent) 3.0))) hseg 298 %2) xig xb)];;todo,what is the grain boundary energy of an pure metal?? need solution
+     (.setTitle mychart (str "Grain boundary energy " (:name solvent) "-" (:name solute) " @T=298 K,d=100 um"))
+     (.setXAxisTitle mychart (str (:name solute) "(at.%)"))
+     (.setYAxisTitle mychart "GB engergy(J/m2)")
+     (.setLegendPosition (.getStyler mychart) Styler$LegendPosition/InsideSW)
+     (.addSeries mychart (str (:name solvent) "-" (:name solute)), xdata, ydata)
+     ;;(.displayChart sw)
+    ;; (println (str "solvent-solute(" (:name solvent) "-" (:name solute) ")"))
+    ;; (println "Heat of solution(kJ/mol):")
+    ;; (println (str (:name solute) " in " (:name solvent) ":" (heatOfSolution solute solvent)))
+    ;; (println (str (:name solvent) " in " (:name solute) ":" (heatOfSolution solvent solute)))
+    ;; (println "Grain boundary segregation enthalpy(kJ/mol):")
+    ;; (println (GBEnthalpy solute solvent))
+     mychart
+     ))
+
+;;variation of grain boundary energy with grain size
+ (defn getGBEvsSizeChart [solute solvent content]
+   (let [mychart (XYChart. cwidth cheight)
+         ;;sw (SwingWrapper. mychart)
+         xdata (take 201 (iterate #(+ % (/ 0.01 200.0)) 0))
+         hseg (GBEnthalpy solute solvent)
+         mcleancomp (map #(McLeanComp % 100.0e-6,0.5e-9,3.0,298,hseg) xdata)
+         xig (map #(:Xig %) mcleancomp)
+         xb  (map #(:Xb %) mcleancomp)
+         ydata (map #(GBEnergy 0 0.5e-9 %1 (-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius solvent) 3.0))) hseg 298 %2) xig xb)];;todo,what is the grain boundary energy of an pure metal?? need solution
+     (.setTitle mychart (str "Grain boundary energy " (:name solvent) "-" (:name solute) " @T=298 K,d=100 um"))
+     (.setXAxisTitle mychart (str (:name solute) "(at.%)"))
+     (.setYAxisTitle mychart "<html>GB engergy(J/m<sup>2</sup>)</html>")
+     (.setLegendPosition (.getStyler mychart) Styler$LegendPosition/InsideSW)
+     (.addSeries mychart (str (:name solvent) "-" (:name solute)), xdata, ydata)
+     ;;(.displayChart sw)
+    ;; (println (str "solvent-solute(" (:name solvent) "-" (:name solute) ")"))
+    ;; (println "Heat of solution(kJ/mol):")
+    ;; (println (str (:name solute) " in " (:name solvent) ":" (heatOfSolution solute solvent)))
+    ;; (println (str (:name solvent) " in " (:name solute) ":" (heatOfSolution solvent solute)))
+    ;; (println "Grain boundary segregation enthalpy(kJ/mol):")
+    ;; (println (GBEnthalpy solute solvent))
+     mychart
+     ))
+
  (defn plot [solute solvent] (let [myframe (frame :title "Miedema enthalpy" :height cheight :width cwidth)]
                                (config! myframe :content (XChartPanel. (getChart solute solvent)))
                                (-> myframe show!)))
