@@ -17,7 +17,6 @@
     <orderEntry type="library" name="Leiningen: com.fifesoft/rsyntaxtextarea:2.5.6" level="project" />
     <orderEntry type="library" name="Leiningen: com.jgoodies/forms:1.2.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.miglayout/miglayout:3.7.4" level="project" />
-    <orderEntry type="library" name="Leiningen: com.panayotis/javaplot:0.5.0" level="project" />
     <orderEntry type="library" name="Leiningen: de.erichseifert.vectorgraphics2d/VectorGraphics2D:0.13" level="project" />
     <orderEntry type="library" name="Leiningen: j18n:1.0.2" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.10.0" level="project" />
