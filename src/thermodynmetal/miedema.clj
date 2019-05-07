@@ -240,7 +240,7 @@
         xb (map #(:Xb %) mcleancomp)
         ydata (map #(GBEnergy 0 0.5e-9 %1 (-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius solvent) 3.0))) hseg 298 %2) xig xb)] ;;todo,what is the grain boundary energy of an pure metal?? need solution
     (.setTitle mychart (str "Grain boundary energy " (:name solvent) "-" (:name solute) " @T=298 K,d=" grainsize " nm"))
-    (.setXAxisTitle mychart (str (:name solute) "(at.%)"))
+    (.setXAxisTitle mychart (str (:name solute) "(atomic)"))
     (.setYAxisTitle mychart (str "GB engergy relative to pure " (:name solvent) " GB (J/m^2)"))
     (.setLegendPosition (.getStyler mychart) Styler$LegendPosition/InsideNE)
     (.addSeries mychart (str (:name solvent) "-" (:name solute)), xdata, ydata)
