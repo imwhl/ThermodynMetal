@@ -180,7 +180,8 @@
         b (-> 1 (- ex) (* fig) (+ (-> 1 (- X) (* ex))) (+ X))
         c (* -1.0 X)
         Xig (-> -1 (* b) (+ (Math/sqrt (-> b (* b) (- (* 4.0 a c))))) (/ 2.0 a))
-        Xb (-> X (- (* fig Xig)) (/ (- 1 fig)))] {:X X :Xig Xig :Xb Xb :fig fig}))
+        Xb (-> X (- (* fig Xig)) (/ (- 1 fig)))]
+    {:X X :Xig Xig :Xb Xb :fig fig}))
 
 
 ;;unit:J/m^2

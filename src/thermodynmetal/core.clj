@@ -44,30 +44,32 @@
 (def GBCompositionBtn (button :text "GB composition"))
 (def GBCompositionVsSizeBtn (button :text "GB composition vs grain size"))
 (def GBSTableB (button :text "GB Hseg"))
+(def GBExcessBtn (button :text "Delta atomicR vs GB excess"))
 (def GBSTable (table :model [:columns [:elements :Ag :Cu :Zn :Fe :C :Al :Mg :Ni :N :H :Y :Cr :Sr :Sc :Ti :V :Mo :Co :Li :Na :Ga :In :Tl :Sn :Pb :Sb :Bi :Pd :Au :Mn :Zr :Nb :Tc :Ta :W :Pt :La :Re :Rh :Ru :Gd :Ca :B :Cd]
                              :rows [{:elements "Ag"} {:elements "Cu"} {:elements "Zn"} {:elements "Fe"} {:elements "C"} {:elements "Al"} {:elements "Mg"} {:elements "Ni"} {:elements "N"} {:elements "H"} {:elements "Y"} {:elements "Cr"} {:elements "Sr"} {:elements "Sc"} {:elements "Ti"} {:elements "V"} {:elements "Mo"} {:elements "Co"} {:elements "Li"} {:elements "Na"} {:elements "Ga"} {:elements "In"} {:elements "Tl"} {:elements "Sn"} {:elements "Pb"} {:elements "Sb"} {:elements "Bi"} {:elements "Pd"} {:elements "Au"} {:elements "Mn"} {:elements "Zr"} {:elements "Nb"} {:elements "Tc"} {:elements "Ta"} {:elements "W"} {:elements "Pt"} {:elements "La"} {:elements "Re"} {:elements "Rh"} {:elements "Ru"} {:elements "Gd"} {:elements "Ca"} {:elements "B"} {:elements "Cd"}]]))
 (def logs (text :multi-line? true :rows 30 :text "Results are shown here"))
 (def myPanel (mig-panel
-               :constraints ["" "[shrink 0]20px[200, grow, fill]" "[shrink 0]5px[grow]"]
-               :items [[""] [soluteLabel "cell 1 0"]
-                       [solventLabel "cell 2 0"]
-                       [contentLabel "cell 3 0"]
-                       [grainSizeLabel "cell 4 0"]
-                       [enthalpyValueLabel "cell 6 0"] ["" "wrap"]
-                       [""] [soluteText]
-                       [solventText]
-                       [contentText]
-                       [grainSizeValueText]
-                       [sizeUnit]
-                       [enthalpyValue]
-                       [enthalpyUnit] [" " "wrap"]
-                       [""] [myButton]
-                       [GBEnergyBtn]
-                       [GBEvsSizeBtn "wrap"]
-                       [""] [GBCompositionBtn]
-                       [GBCompositionVsSizeBtn]
-                       [GBSTableB]
-                       [(scrollable logs) "cell 1 5 7 30"]]))
+              :constraints ["" "[shrink 0]20px[200, grow, fill]" "[shrink 0]5px[grow]"]
+              :items [[""] [soluteLabel "cell 1 0"]
+                      [solventLabel "cell 2 0"]
+                      [contentLabel "cell 3 0"]
+                      [grainSizeLabel "cell 4 0"]
+                      [enthalpyValueLabel "cell 6 0"] ["" "wrap"]
+                      [""] [soluteText]
+                      [solventText]
+                      [contentText]
+                      [grainSizeValueText]
+                      [sizeUnit]
+                      [enthalpyValue]
+                      [enthalpyUnit] [" " "wrap"]
+                      [""] [myButton]
+                      [GBEnergyBtn]
+                      [GBEvsSizeBtn "wrap"]
+                      [""] [GBCompositionBtn]
+                      [GBCompositionVsSizeBtn]
+                      [GBSTableB]
+                      [GBExcessBtn]
+                      [(scrollable logs) "cell 1 5 7 30"]]))
 (display myPanel)
 ;;(config! myframe :content (XChartPanel. (getChart Zn Cu)))
 (listen myButton :action (fn [e]
@@ -119,15 +121,34 @@
                                     )))
                               (config! myframe :content (scrollable GBSTable))
                               (config! myframe :visible? true))))
+
+
+(listen GBExcessBtn :action(fn [e] (let [content (read-string (second (re-matches (re-pattern "(\\d+\\.{0,1}\\d+).*") (text contentText))))
+                                         size (read-string (second (re-matches (re-pattern "(\\d+\\.{0,1}\\d{0,}).*") (text grainSizeValueText))))]
+                                     (with-open [writer (-> (str "GB_Excess_content=" content "_size=" size  "nm.txt") FileOutputStream. BufferedOutputStream. PrintWriter.)]
+                                       (.println writer (str "Xb=" content))
+                                       (.println writer (str "Grain size=" size "nm"))
+                                       (.println writer "solute\tsolvent\tRadius Difference(angstrom)\tfig\tXc\tXig\tExcess Gamma\tHseg")
+                                       (dorun (for [a atomSets b atomSets]
+                                                (let [hseg (GBEnthalpy a b)
+                                                      McComp (McLeanComp content (* size 1.0e-9), 0.5e-9, 3.0, 298, hseg)
+                                                      fig (:fig McComp)
+                                                      Xc (:Xb McComp)
+                                                      Xig (:Xig McComp)
+                                                      Gamma (-> 0.5e-9 (* Xig) (/ (-> Math/PI (* 4.0) (/ 3.0) (* (Math/pow (:atomicradius b) 3.0)))))
+                                                      DeltaR (-> (:atomicradius b) (- (:atomicradius a)) (* 1.0e10))]
+                                                  (.println writer (str (:name a) "\t" (:name b) "\t" DeltaR "\t" fig "\t" Xc "\t" Xig "\t" Gamma "\t" hseg))))))
+                                     (text! logs (str (text logs) "\n GB_Excess_content=" content "_size=" size  "nm.txt saved"))
+                                     )))
 ;;(config! myframe :visible? true)
 ;;(text logs)
 ;;(doseq [a atomSets] (map #((format "%.1f" (GBEnthalpy Ag a)))))
 ;;(dorun (map #(update-at! GBSTable % {:Ag (format "%.1f" (GBEnthalpy Ag Au))}) (range 3)))
 ;;(-> f show!)
 (defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (-> f show!)
-  )
+"I don't do a whole lot ... yet."
+[& args]
+(-> f show!)
+)
 ;;(println "Hello, World!")
 
